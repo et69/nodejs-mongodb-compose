@@ -1,0 +1,46 @@
+services:
+  app:
+    image: my-node
+    build:
+      context: ./app
+    ports:
+      - 3000:3000
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  mongo:
+    image: mongo:8.0
+    restart: always
+    volumes:
+      - mongo-db:/data/db
+    env_file:
+      - ./db.env
+    healthcheck:
+      test: ["CMD-SHELL",'mongosh -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --eval "db.stats().ok"']
+      interval: 1m
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    networks:
+      - app-net
+
+  db-ui:
+    image: mongo-express
+    restart: always
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - 8081:8081
+    env_file:
+      - ./db-ui.env
+    networks:
+      - app-net
+
+networks:
+  app-net:
+volumes:
+  mongo-db:
